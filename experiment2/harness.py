@@ -127,6 +127,7 @@ def run_visible(full_src, spec, timeout=20):
     for line in out.splitlines():
         try: r = json.loads(line)
         except ValueError: continue
+        if not isinstance(r, dict): continue  # candidate printed a bare value
         if "compile_error" in r: compile_error = r["compile_error"]
         elif "i" in r: res[r["i"]] = r
     for i in range(n):
