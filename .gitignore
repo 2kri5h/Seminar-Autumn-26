@@ -11,3 +11,6 @@ report/*.lof
 report/*.lot
 __pycache__/
 *.pyc
+
+experiment2/*.jsonl.gz
+experiment2/__pycache__/
