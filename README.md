@@ -36,11 +36,14 @@ The report compiles with XeLaTeX and uses the free Linux Libertine O / Linux Bio
 - The SWE-bench comparison (Section 6) uses counts derived from two public submissions in the SWE-bench experiments repository; see the report for what could and could not be verified.
 - Emissions use the CEA all-India weighted average for FY 2025-26 (0.675 kg CO2/kWh), a national annual figure, not the local grid at run time.
 
-## Follow-up experiment (Case study 2) and production run
+## Follow-up experiment (Case study 2) and frontier-scale models (Section 7)
 
 - `experiment2/harness.py` — branched repair on local Ollama models (full history, short history, fresh retry from the same failed first program).
-- `experiment2/gemini_harness.py` — the same harness against the Gemini API (key read from `GEMINI_API_KEY`).
+- `experiment2/openrouter_harness.py` — the same harness against any OpenAI-compatible endpoint (`--api-url`, `--key-env`, `--extra`). Used for Kimi K3.1 Pro (`moonshotai/kimi-k3.1-pro`, reasoning effort low, provider sorted by throughput) and Nemotron 3 Ultra (`nvidia/nemotron-3-ultra-550b-a55b:free`) on OpenRouter, 140 seed-11 problems each.
+- `experiment2/gemini_harness.py` — Gemini API backend. The Gemini (11 problems) and Mistral Large 4 (16 problems) runs were stopped by quotas and endpoint speed; their logs are kept in `data/followup/` but are not used in the report.
 - `experiment2/energy.py`, `score_hidden.py`, `analyze.py`, `crossmodel.py`, `make_followup_figure.py` — energy integration, hidden EvalPlus scoring, policy analysis, cross-model comparison, figure.
 - `data/followup/` — run logs (`runs_*.jsonl`), merged GPU power log, per-request energy, hidden-test scores and the results files used in the report.
 
 Reproduce: `python experiment2/analyze.py --runs data/followup/runs_7b.jsonl data/followup/runs_1.5b.jsonl --hidden data/followup/hidden_scores.json --energy data/followup/energy.json --out results.json`
+
+Four-model comparison (Table 4): `python experiment2/crossmodel.py --runs data/followup/runs_1.5b.jsonl data/followup/runs_7b.jsonl data/followup/runs_kimi.jsonl data/followup/runs_nemotron.jsonl --hidden data/followup/hidden_scores_all.json --energy data/followup/energy.json --out crossmodel_all.json`
