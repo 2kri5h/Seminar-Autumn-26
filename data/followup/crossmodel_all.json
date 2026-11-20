@@ -1,0 +1,182 @@
+{
+ "seed": 11,
+ "models": {
+  "1.5b": {
+   "units": 140,
+   "first_visible_pass": 98,
+   "first_correct": 93,
+   "visible_pass_hidden_fail": 5,
+   "first_latency_s_median": 2.8142694234848022,
+   "first_output_tokens_median": 144.0,
+   "first_prompt_tokens_median": 169.0,
+   "first_J_median": 68.58386772219129,
+   "J_per_output_token": 0.4566416785651813
+  },
+  "7b": {
+   "units": 140,
+   "first_visible_pass": 117,
+   "first_correct": 111,
+   "visible_pass_hidden_fail": 6,
+   "first_latency_s_median": 5.097750186920166,
+   "first_output_tokens_median": 147.0,
+   "first_prompt_tokens_median": 169.0,
+   "first_J_median": 151.64999525826238,
+   "J_per_output_token": 1.0365550074308831
+  },
+  "kimi": {
+   "units": 140,
+   "first_visible_pass": 138,
+   "first_correct": 130,
+   "visible_pass_hidden_fail": 8,
+   "first_latency_s_median": 1.5151879787445068,
+   "first_output_tokens_median": 159.5,
+   "first_prompt_tokens_median": 254.5,
+   "first_thinking_tokens_median": 51.0,
+   "first_thinking_tokens_mean": 71.37142857142857,
+   "first_total_output_tokens_mean": 246.52857142857144,
+   "same_problems_first_correct": {
+    "problems": 140,
+    "kimi": 130,
+    "1.5b": 93,
+    "7b": 111
+   }
+  },
+  "nemotron": {
+   "units": 140,
+   "first_visible_pass": 138,
+   "first_correct": 131,
+   "visible_pass_hidden_fail": 7,
+   "first_latency_s_median": 10.494689583778381,
+   "first_output_tokens_median": 188.0,
+   "first_prompt_tokens_median": 174.5,
+   "first_thinking_tokens_median": 536.0,
+   "first_thinking_tokens_mean": 1206.8357142857142,
+   "first_total_output_tokens_mean": 1416.6714285714286,
+   "same_problems_first_correct": {
+    "problems": 140,
+    "nemotron": 131,
+    "1.5b": 93,
+    "7b": 111
+   }
+  },
+  "mistral": {
+   "units": 16,
+   "first_visible_pass": 16,
+   "first_correct": 15,
+   "visible_pass_hidden_fail": 1,
+   "first_latency_s_median": 118.76280903816223,
+   "first_output_tokens_median": 127.5,
+   "first_prompt_tokens_median": 163.5,
+   "first_thinking_tokens_median": 859.5,
+   "first_thinking_tokens_mean": 1214.6875,
+   "first_total_output_tokens_mean": 1351.75,
+   "same_problems_first_correct": {
+    "problems": 16,
+    "mistral": 15,
+    "1.5b": 12,
+    "7b": 14
+   }
+  },
+  "gemini": {
+   "units": 11,
+   "first_visible_pass": 10,
+   "first_correct": 10,
+   "visible_pass_hidden_fail": 0,
+   "first_latency_s_median": 6.29760217666626,
+   "first_output_tokens_median": 207,
+   "first_prompt_tokens_median": 163,
+   "first_thinking_tokens_median": 1224,
+   "first_thinking_tokens_mean": 4004.4545454545455,
+   "first_total_output_tokens_mean": 4214.272727272727,
+   "same_problems_first_correct": {
+    "problems": 11,
+    "gemini": 10,
+    "1.5b": 8,
+    "7b": 9
+   }
+  }
+ },
+ "paired": {
+  "arms": {
+   "1.5b:one": {
+    "correct": 93,
+    "success": 0.6642857142857143,
+    "J_per_correct": 108.8673042704
+   },
+   "1.5b:retry_cap4": {
+    "correct": 105,
+    "success": 0.75,
+    "J_per_correct": 178.53080523733848
+   },
+   "1.5b:short_cap4": {
+    "correct": 94,
+    "success": 0.6714285714285714,
+    "J_per_correct": 206.48376133118416
+   },
+   "7b:one": {
+    "correct": 111,
+    "success": 0.7928571428571428,
+    "J_per_correct": 214.7256382059975
+   },
+   "7b:retry_cap4": {
+    "correct": 116,
+    "success": 0.8285714285714286,
+    "J_per_correct": 310.34419606034857
+   },
+   "7b:short_cap4": {
+    "correct": 114,
+    "success": 0.8142857142857143,
+    "J_per_correct": 315.9791350083812
+   }
+  },
+  "1.5b:retry_cap4 vs 7b:one": {
+   "dsucc_pp": -4.285714285714281,
+   "dsucc_ci95_pp": [
+    -11.428571428571429,
+    2.857142857142857
+   ],
+   "Jratio": 0.8314368359965686,
+   "Jratio_ci95": [
+    0.6876371585315484,
+    1.0069774391301118
+   ]
+  },
+  "1.5b:one vs 7b:one": {
+   "dsucc_pp": -12.857142857142856,
+   "dsucc_ci95_pp": [
+    -20.0,
+    -5.714285714285714
+   ],
+   "Jratio": 0.5070065464933345,
+   "Jratio_ci95": [
+    0.4503322289722534,
+    0.5731777676169025
+   ]
+  },
+  "7b:retry_cap4 vs 7b:one": {
+   "dsucc_pp": 3.571428571428581,
+   "dsucc_ci95_pp": [
+    0.7142857142857143,
+    7.142857142857143
+   ],
+   "Jratio": 1.4453057336479735,
+   "Jratio_ci95": [
+    1.2718423779914738,
+    1.6304142169455091
+   ]
+  },
+  "1.5b:retry_cap4 vs 1.5b:one": {
+   "dsucc_pp": 8.571428571428575,
+   "dsucc_ci95_pp": [
+    4.285714285714286,
+    13.571428571428571
+   ],
+   "Jratio": 1.639893689237599,
+   "Jratio_ci95": [
+    1.4390657752392308,
+    1.8576543852855751
+   ]
+  },
+  "problems": 140
+ }
+}
