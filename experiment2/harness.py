@@ -218,11 +218,16 @@ def main():
     ap.add_argument("--model", required=True); ap.add_argument("--tag", required=True)
     ap.add_argument("--out", required=True); ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--allow-cpu", action="store_true")
+    ap.add_argument("--seeds", default="11,29,47", help="comma-separated seeds")
     a = ap.parse_args()
     probs = [p for p in load_problems() if int(p["task_id"].split("/")[1]) not in PILOT_HELDOUT]
-    units = [(p, s) for p in probs for s in SEEDS]
+    seeds = [int(x) for x in a.seeds.split(",")]
+    units = [(p, s) for p in probs for s in seeds]
     random.Random(2026).shuffle(units)
     if a.limit: units = units[:a.limit]
+    if os.name == "nt":  # keep the laptop awake while this process runs (no settings are changed)
+        import ctypes
+        ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)
     done = set()
     if os.path.exists(a.out):
         for l in open(a.out, encoding="utf-8"):
