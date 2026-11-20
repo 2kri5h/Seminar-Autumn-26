@@ -1,4 +1,5 @@
-"""Runs the same branched-repair experiment through OpenRouter (OpenAI-compatible API).
+"""Runs the same branched-repair experiment through an OpenAI-compatible API (OpenRouter by default;
+use --api-url https://integrate.api.nvidia.com/v1/chat/completions --key-env NVIDIA_API_KEY for NVIDIA).
 
 Same problems, prompts, visible checks, branches and cap as harness.py; only the model call changes.
 Hosted model: records tokens (including reasoning tokens), latency and outcomes, not energy.
@@ -12,6 +13,8 @@ import argparse, json, os, random, sys, time, urllib.error, urllib.request
 import harness as H
 
 API = "https://openrouter.ai/api/v1/chat/completions"
+KEY_ENV = "OPENROUTER_API_KEY"
+EXTRA = {}
 MAX_OUT = 16384          # room for long reasoning (an 8,192 cap truncated Gemini's reasoning)
 _min_gap = 0.0
 _last_call = 0.0
@@ -23,9 +26,11 @@ class DailyQuota(Exception):
 
 def or_chat(model, messages, seed):
     global _last_call
-    body = json.dumps({"model": model, "messages": messages, "temperature": 0.2, "seed": int(seed) % 2**31,
-                       "max_tokens": MAX_OUT, "usage": {"include": True}}).encode()
-    key = os.environ["OPENROUTER_API_KEY"]
+    b = {"model": model, "messages": messages, "temperature": 0.2, "seed": int(seed) % 2**31, "max_tokens": MAX_OUT}
+    if "openrouter.ai" in API: b["usage"] = {"include": True}
+    b.update(EXTRA)
+    body = json.dumps(b).encode()
+    key = os.environ[KEY_ENV]
     for tries in range(8):
         wait = _min_gap - (time.time() - _last_call)
         if wait > 0: time.sleep(wait)
@@ -54,25 +59,29 @@ def or_chat(model, messages, seed):
     else:
         raise RuntimeError("gave up after repeated rate-limit or server errors")
     ch = resp["choices"][0]
+    rc = ch["message"].get("reasoning_content") or ch["message"].get("reasoning") or ""
     u = resp.get("usage") or {}
     det = u.get("completion_tokens_details") or {}
     meta = {"prompt_eval_count": u.get("prompt_tokens"), "completion_tokens": u.get("completion_tokens"),
             "thoughts_count": det.get("reasoning_tokens"),
             "eval_count": (u.get("completion_tokens") or 0) - (det.get("reasoning_tokens") or 0),
             "finish_reason": ch.get("finish_reason"), "model_version": resp.get("model"),
-            "provider": resp.get("provider")}
+            "provider": resp.get("provider"), "reasoning_chars": len(rc)}
     return ch["message"].get("content") or "", {"t_start": t0, "t_end": t1, **meta}
 
 
 def main():
-    global _min_gap
+    global _min_gap, API, KEY_ENV, EXTRA
     ap = argparse.ArgumentParser()
+    ap.add_argument("--api-url", default=API); ap.add_argument("--key-env", default=KEY_ENV)
+    ap.add_argument("--extra", default="{}", help="extra JSON fields for the request body")
     ap.add_argument("--model", required=True); ap.add_argument("--tag", required=True)
     ap.add_argument("--out", required=True); ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--seeds", default="11"); ap.add_argument("--rpm", type=float, default=15)
     a = ap.parse_args()
-    if not os.environ.get("OPENROUTER_API_KEY"):
-        sys.exit("Set OPENROUTER_API_KEY in this shell first.")
+    API, KEY_ENV, EXTRA = a.api_url, a.key_env, json.loads(a.extra)
+    if not os.environ.get(KEY_ENV):
+        sys.exit(f"Set {KEY_ENV} in this shell first.")
     _min_gap = 60.0 / a.rpm
     H.chat = or_chat
     probs = [p for p in H.load_problems() if int(p["task_id"].split("/")[1]) not in H.PILOT_HELDOUT]
