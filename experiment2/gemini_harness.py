@@ -44,7 +44,7 @@ def gemini_chat(model, messages, seed):
                                      headers={"Content-Type": "application/json", "x-goog-api-key": key})
         t0 = time.time(); _last_call = t0
         try:
-            with urllib.request.urlopen(req, timeout=300) as r:
+            with urllib.request.urlopen(req, timeout=180) as r:
                 resp = json.loads(r.read())
             t1 = time.time()
             break
@@ -57,6 +57,8 @@ def gemini_chat(model, messages, seed):
             if e.code in (500, 503):
                 time.sleep(min(120, 10 * 2 ** tries)); continue
             raise RuntimeError(f"HTTP {e.code}: {msg[:500]}")
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            time.sleep(min(120, 10 * 2 ** tries)); continue
     else:
         raise RuntimeError("gave up after repeated rate-limit or server errors")
     cand = (resp.get("candidates") or [{}])[0]
