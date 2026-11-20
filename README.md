@@ -35,3 +35,12 @@ The report compiles with XeLaTeX and uses the free Linux Libertine O / Linux Bio
 - The report states these limits itself: one model, one GPU, 24 problems, three seeds, gross board energy only.
 - The SWE-bench comparison (Section 6) uses counts derived from two public submissions in the SWE-bench experiments repository; see the report for what could and could not be verified.
 - Emissions use the CEA all-India weighted average for FY 2025-26 (0.675 kg CO2/kWh), a national annual figure, not the local grid at run time.
+
+## Follow-up experiment (Case study 2) and production run
+
+- `experiment2/harness.py` — branched repair on local Ollama models (full history, short history, fresh retry from the same failed first program).
+- `experiment2/gemini_harness.py` — the same harness against the Gemini API (key read from `GEMINI_API_KEY`).
+- `experiment2/energy.py`, `score_hidden.py`, `analyze.py`, `crossmodel.py`, `make_followup_figure.py` — energy integration, hidden EvalPlus scoring, policy analysis, cross-model comparison, figure.
+- `data/followup/` — run logs (`runs_*.jsonl`), merged GPU power log, per-request energy, hidden-test scores and the results files used in the report.
+
+Reproduce: `python experiment2/analyze.py --runs data/followup/runs_7b.jsonl data/followup/runs_1.5b.jsonl --hidden data/followup/hidden_scores.json --energy data/followup/energy.json --out results.json`

@@ -36,7 +36,7 @@
 \definecolor{cShort}{HTML}{1BAF7A}
 
 % ---- Repository link: replace the text below with your public GitHub URL before submitting ----
-\newcommand{\repourl}{\textcolor{red}{[add GitHub repository URL]}}
+\newcommand{\repourl}{\url{https://github.com/2kri5h/Seminar-Autumn-26}}
 
 \linespread{1.22}
 \titleformat{\section}{\normalfont\sffamily\bfseries\Large\color{accent}}{\thesection}{0.7em}{}
@@ -110,7 +110,7 @@
 \raggedright
 {\sffamily\bfseries\large\color{accent} Abstract}\par\medskip
 \small\linespread{1.15}\selectfont\spaceskip=0.3em plus 0.16em minus 0.07em 
-AI agents increasingly work in loops: they generate an answer, check it with a tool, and try again when the check fails. Each extra attempt costs compute and electricity, so the practical question is when another step is worth its cost. This report first builds the foundations needed to answer that question: how a language model produces text and why prompt reuse matters, how an agent loop and its verifier work, the main strategies for spending an extra model call, and how to turn GPU power readings into energy and emissions. I then apply these ideas in a case study. I ran an open-weight coding model (Qwen2.5-Coder 7B) on a laptop GPU over 24 held-out HumanEval problems, three seeds and three policies (216 runs, 259 requests), measuring board power for every request. Repair rescued two failed first answers in each repair policy, and success rose from 83.3\% (one attempt) to 86.1\% (full history) and 87.5\% (short history). Energy per run rose by 52\% and 44\%, so a single attempt used the least GPU energy per correct solution: 129\,J against 189\,J and 176\,J. Runs that reached the four-attempt cap were 8--10\% of runs, used 38--44\% of the energy, and never succeeded. A comparison of two public SWE-bench Verified submissions shows how these questions change for repository-scale agents. I close with a progress-based stopping rule to test, a measurement boundary for honest carbon accounting, and a disclosure proposal informed by India's AI Governance Guidelines.
+AI agents increasingly work in loops: they generate an answer, check it with a tool, and try again when the check fails. Each extra attempt costs compute and electricity, so the practical question is when another step is worth its cost. I first build the foundations: how a language model produces text, how an agent loop and its verifier work, the main ways to spend an extra model call, and how to turn GPU power readings into energy and emissions. I then measure the question on a laptop GPU. A pilot (Qwen2.5-Coder 7B, 24 HumanEval problems, 216 runs) found that one attempt gave the lowest energy per correct solution. A follow-up on 140 fresh problems and two model sizes (1.5B and 7B; 383 runs, 1{,}128 measured requests) branched every policy from the same failed first program. Feeding the failure back to the model rarely helped: it resubmitted an unchanged program in 76--91\% of repair attempts, and short and full history did not differ measurably. A fresh retry rescued far more failures (29\% for 1.5B, 17\% for 7B). The small model with up to four fresh retries reached 75.0\% success, against 79.3\% for the large model's single attempt, at 0.83 times its energy per correct solution; neither difference is statistically clear. A stop on lack of visible progress kept almost every repair rescue at a quarter less energy than a four-attempt cap, but it was no better than a simple two-attempt cap. A preliminary run of a production model (Gemini 3 Flash) and Google's published per-prompt energy figures show how the picture changes in a data centre, where hidden reasoning tokens dominate output. I close with the measurement boundary for honest carbon accounting and a disclosure proposal informed by India's AI Governance Guidelines.
 \end{tcolorbox}
 \end{titlepage}
 
@@ -198,7 +198,7 @@ $n$ cars drive east and $n$ drive west on a straight road; every eastbound car p
 
 \textbf{Visible and hidden tests.} The visible tests are the agent's verifier. They are incomplete: a function that always returns 4 passes the $n=2$ test but fails at $n=3$. I therefore score a submission as correct only if it also passes hidden tests from EvalPlus~\cite{liu2023evalplus}, which the agent never sees. In my pilot, each policy submitted three programs that passed the visible tests but failed the hidden ones. These \emph{false positives} are the verifier's blind spot.
 
-\subsection{How much can retrying help?}
+\subsection{How much can retrying help?}\label{sec:pk}
 If attempts were independent and each correct with probability $p$, the chance that at least one of $k$ attempts is correct would be
 \begin{equation}
 \Pr(\text{at least one correct})=1-(1-p)^k .
@@ -290,7 +290,7 @@ My 72 short-history runs used 11.11\,kJ $=$ 3.09\,Wh of GPU board energy. The CE
 \end{example}
 
 % =====================================================================
-\section{Case study: repair on a laptop GPU}
+\section{Case study 1: a pilot on a laptop GPU}
 \subsection{Setup}
 I prepared the pipeline on eight development problems, then evaluated 24 held-out HumanEval problems~\cite{chen2021humaneval}. I ran the open-weight model Qwen2.5-Coder 7B (Q4\_K\_M) locally on an RTX~5070 Laptop GPU, with temperature 0.2, an 8{,}192-token context and a 1{,}024-token output cap. Original HumanEval tests gave the visible feedback; EvalPlus tests~\cite{liu2023evalplus} were scored after each run in a sandbox with a 30-second limit per test program. I compared three policies:
 \begin{itemize}
@@ -298,7 +298,7 @@ I prepared the pipeline on eight development problems, then evaluated 24 held-ou
 \item \textbf{Full history:} on failure, append the previous answer and failure message to the conversation.
 \item \textbf{Short history:} on failure, send only the task, the latest code and the latest failure message.
 \end{itemize}
-Repair policies stopped at the first visible pass or after four attempts, and the final candidate was scored. Every policy ran on every problem with seeds 11, 29 and 47 (the seed advanced by one per repair), in shuffled order: $24\times3\times3=216$ runs and 259 requests. Code, prompts, raw power logs and analysis scripts are in my repository (\S11).
+Repair policies stopped at the first visible pass or after four attempts, and the final candidate was scored. Every policy ran on every problem with seeds 11, 29 and 47 (the seed advanced by one per repair), in shuffled order: $24\times3\times3=216$ runs and 259 requests. Code, prompts, raw power logs and analysis scripts are in my repository (\S\ref{sec:code}).
 
 \subsection{Results}
 \begin{table}[h]
@@ -323,36 +323,88 @@ Short history & 63/72 & 87.5\% & 154.36 & 176.41\\\bottomrule
 
 \textbf{Repair raised accuracy a little and energy a lot.} Energy per run rose by 52\% (full) and 44\% (short), while success rose by only 3\% and 5\% in relative terms. By Eq.~(5), the gain is far too small to pay for the energy (Fig.~\ref{fig:results}b). Requests per policy grew less than energy: 72, 95 and 92 requests, so mean energy per request rose from 107\,J to 124\,J (full) and 121\,J (short). Revision requests carry longer prompts than first attempts.
 
-\textbf{What repair actually bought.} Repair rescued exactly two failed first answers in each repair policy; the four runs that finished on their second attempt all passed. The headline gain of short history over one attempt is three correct runs, but one of them comes from a different \emph{first} answer: short history's first programs were already correct in 61 runs, against 60 for one attempt. Matched seeds did not guarantee identical first answers: full and short history produced different first programs in 6 of 72 matched pairs before any feedback was given. Table~\ref{tab:problems} shows where the totals differ. Full history's entire net gain over one attempt is on a single problem, the collision example.
+\textbf{What repair actually bought.} Repair rescued exactly two failed first answers in each repair policy. Full history's entire net gain over one attempt came from a single problem, the collision example, and one of short history's three extra successes came from a different \emph{first} answer rather than from repair: even with matched seeds, the two repair policies produced different first programs in 6 of 72 pairs before any feedback was given.
+
+\textbf{Where the extra energy went.} Most runs ended after one attempt. All 13 runs that reached the four-attempt cap failed, yet they consumed 44\% (full) and 38\% (short) of their policies' energy (Fig.~\ref{fig:results}c). In hindsight a two-attempt cap would have kept every rescue, but reaching the cap selects the hardest problems, so a cap must be tested on fresh data.
+
+\textbf{How certain?} Resampling the 24 problems 10{,}000 times, the energy-per-success ratios against one attempt (1.47 for full and 1.37 for short history) both had 95\% intervals entirely above 1. Short versus full history ($0.93$, interval $[0.82,\,1.08]$) was unresolved, and only 17 runs entered repair at all. Because each policy also had its own first answer, the pilot could not separate repair from first-answer variation. These gaps motivated the second case study.
+
+% =====================================================================
+\section{Case study 2: answering the open questions}\label{sec:followup}
+The pilot left three questions open: whether short or full history is better, whether a stop on lack of progress keeps the rescues, and whether the answer changes with model size. Its design could not settle them, because each policy produced its own first answer. I therefore ran a second experiment designed to answer exactly these questions.
+
+\subsection{Design}
+\textbf{Same failure, many continuations.} For every run, the model first answers once. If that answer fails a visible check, three continuations start from the \emph{same} failed program: \emph{full history} (the conversation grows), \emph{short history} (task, latest code, latest failure) and a \emph{fresh retry} (the original prompt again, with a new seed and no feedback). Each continuation runs to a visible pass or four attempts. Every stopping policy is then read off these recorded trajectories, so all policies are compared on identical cases and charged for the same first request.
+
+\textbf{The progress-based stop.} Let $v_t$ be the number of visible checks passed by attempt $t$ and $b_t=\max_{s\le t}v_s$ the best so far. A counter resets when $v_t>b_{t-1}$ and grows by one otherwise. The rule submits on a visible pass, stops when the counter reaches the patience $K$ or at four attempts, and on a non-accepting stop returns the \emph{earliest} attempt that reached $b_t$. To make this possible, the harness splits each problem's test into separate checks and records every one.
+
+\textbf{Problems and models.} I used the 140 HumanEval problems not used in the pilot~\cite{chen2021humaneval}, so no problem was seen while designing the policies. Two models from the same family ran on the laptop GPU through Ollama 0.40.16: Qwen2.5-Coder 1.5B and 7B, both quantized to Q4\_K\_M, with the pilot's settings. The 1.5B model ran every problem with seed 11; the 7B model ran every problem with seed 11 and 103 further runs with seeds 29 and 47. In total there were 383 runs and 1{,}128 model requests, each matched to at least 18 power samples. Hidden EvalPlus tests~\cite{liu2023evalplus} decided correctness, and intervals come from a bootstrap that resamples whole problems 10{,}000 times.
 
 \begin{table}[h]
 \centering\small
-\caption[Correct submissions per problem (out of three seeds)]{Correct submissions out of three seeds. Only these four of the 24 problems differ across policies.}
-\label{tab:problems}
-\begin{tabular}{@{}lccc@{}}
+\caption[Follow-up: success and energy per correct solution]{Follow-up results. Success and GPU energy per correct solution (J) for each policy. Rescues count failed first answers turned into correct submissions.}
+\label{tab:followup}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-HumanEval problem & One attempt & Full & Short\\\midrule
-41 (collisions) & 1 & 3 & 3\\
-83 & 0 & 0 & 1\\
-113 & 3 & 3 & 2\\
-160 & 0 & 0 & 1\\\midrule
-Total over 24 problems & 60 & 62 & 63\\\bottomrule
+& \multicolumn{3}{c}{Qwen2.5-Coder 1.5B (140 runs)} & \multicolumn{3}{c}{Qwen2.5-Coder 7B (243 runs)}\\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Policy & Success & J/correct & Rescues & Success & J/correct & Rescues\\\midrule
+One attempt & 66.4\% & \textbf{109} & -- & 77.0\% & \textbf{227} & --\\
+Full history, cap 4 & 67.9\% & 204 & 2 & 77.4\% & 372 & 1\\
+Short history, cap 4 & 67.1\% & 206 & 1 & 78.6\% & 364 & 4\\
+Fresh retry, cap 2 & 70.0\% & 137 & 5 & 78.2\% & 272 & 3\\
+Fresh retry, cap 4 & \textbf{75.0\%} & 179 & 12 & \textbf{80.2\%} & 345 & 8\\
+Short history, progress stop $K{=}1$ & 67.1\% & 142 & 1 & 77.8\% & 278 & 2\\\midrule
+Failed first answers & \multicolumn{3}{c}{42} & \multicolumn{3}{c}{46}\\\bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Where the extra energy went.} Most runs ended after one attempt (63 full, 64 short). Two runs per policy finished at attempt two, none at attempt three, and seven (full) and six (short) reached the cap. All 13 capped runs failed, yet they consumed 44\% and 38\% of their policies' energy (Fig.~\ref{fig:results}c). In hindsight, a two-attempt cap would have kept every rescue in this sample and cut revision requests from 43 to 17. This is an in-sample observation, not a validated rule: reaching the cap selects the hardest problems, so a cap must be tested on fresh data.
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figs/followup.pdf}
+\caption[Follow-up: cost against success, unchanged resubmissions and rescues]{(a) Success against GPU energy per correct solution at a four-attempt cap; circles are the 1.5B model, squares the 7B model. (b) Share of continuation attempts that returned exactly the program of the previous attempt. (c) Share of failed first answers that each continuation turned into a correct submission.}
+\label{fig:followup}
+\end{figure}
 
-\subsection{How certain are these results?}
-Three runs of the same problem share its difficulty, so I resampled the 24 problems with replacement 10{,}000 times, keeping all seeds and policies of a chosen problem together, and recomputed the energy-per-success ratios. The 95\% intervals for full history versus one attempt (point estimate 1.47) and short history versus one attempt (1.37) both lay entirely above 1: both repair policies cost more energy per success. For short versus full history the ratio was $176.41/189.29=0.93$ with interval $[0.815,\,1.084]$, from 18.5\% cheaper to 8.4\% dearer. \emph{Which history strategy is better remains unresolved.}
+\subsection{Short or full history?}
+\textbf{Neither, measurably.} At a four-attempt cap, short history cost $0.98\times$ the energy per correct solution of full history for the 7B model (95\% interval $[0.94,\,1.01]$) and $1.01\times$ for the 1.5B model ($[0.98,\,1.06]$). Success differed by at most 1.2 points. The pilot's open question has a clear answer: on these tasks, the amount of history does not matter.
 
-Two measurement caveats apply. First, two first-attempt requests included model reloads lasting 10.80\,s (full history) and 8.68\,s (short history). I kept them because a deployment pays for such events, but since both fell in repair policies they bias the comparison slightly against repair. Second, only 17 runs entered repair at all, and the largest prompt was 1{,}444 tokens, far shorter than a real debugging session.
+\textbf{Why: the model repeats itself.} Fig.~\ref{fig:followup}b shows the reason. After seeing its failure, the model returned an \emph{unchanged} program in 76\% (full) and 80\% (short) of the 7B model's repair attempts, and in 88\% and 91\% of the 1.5B model's. An unchanged program fails the same check again, so most repair requests bought nothing. This matches Olausson et al.'s finding that repair is limited by the quality of the model's feedback on its own code~\cite{olausson2024selfrepair}.
 
-\begin{keybox}{Applied: what the pilot means at service scale (arithmetic illustration)}
-If a service answered one million such problems a day, the measured difference between 107\,J and 154\,J per run would be about 47\,MJ, or 13\,kWh of GPU energy per day, for roughly 4 extra correct answers per 100. Whether that trade is worth it is a product decision; the point is that it can be stated in numbers.
-\end{keybox}
+\textbf{A fresh retry did better.} Re-asking the original question without any feedback changed the program far more often and rescued far more failures: 12 of 42 for the 1.5B model and 8 of 46 for the 7B model, against at most 4 for either repair style (Fig.~\ref{fig:followup}c). For the 1.5B model, a fresh retry beat short history by 7.9 points of success (interval $[3.6,\,12.9]$) at $0.87\times$ the energy per correct solution ($[0.77,\,0.95]$). For the 7B model the same direction holds, but the intervals include no difference. In the language of \S\ref{sec:pk}, independent samples were more useful than feedback-driven revisions here: the feedback anchored the model on its own wrong answer.
+
+\textbf{Still not free.} Every multi-attempt policy cost more energy per correct solution than one attempt; even the best one, a fresh retry with cap 4, cost $1.52\times$ ($[1.32,\,1.73]$) for the 7B model and $1.64\times$ ($[1.44,\,1.86]$) for the 1.5B model. Retrying buys accuracy, not efficiency.
+
+\subsection{Does a progress-based stop keep the rescues?}
+\textbf{For repair, yes; but a fixed cap does as well.} With patience $K=1$, the progress stop gave up no rescues of full history for either model and two of the 7B model's four short-history rescues, while cutting energy per correct solution by a quarter to a third relative to a four-attempt cap (short history, 7B: $0.76\times$, interval $[0.71,\,0.84]$). Because repairs so often repeated the same program, the counter almost always stopped after the second attempt, so the rule behaved like a two-attempt cap and saved the same energy.
+
+\textbf{For a fresh retry, visible progress is the wrong signal.} Retries are independent, so a retry that passes fewer checks says little about the next one. With $K=1$, the rule gave up 5 of the 12 retry rescues of the 1.5B model and 5 of the 8 of the 7B model; with $K=2$ it gave up one in each, for about a tenth less energy than cap 4. A fixed budget of attempts is the simpler and safer rule for retries.
+
+\subsection{Does the answer change with model size?}
+On the 140 problems both models ran with seed 11, the 7B model's single attempt succeeded on 79.3\% against 66.4\% for the 1.5B model, a gap of 12.9 points (interval $[5.7,\,20.0]$), but it used about twice the energy per correct solution: the 1.5B model needed $0.51\times$ as much ($[0.45,\,0.57]$). Each generated token cost about 1.04\,J on the 7B model and 0.46\,J on the 1.5B model.
+
+Spending the saving on retries narrows the gap. The 1.5B model with up to four fresh retries reached 75.0\%, 4.3 points below the 7B model's single attempt (interval $[-11.4,\,+2.9]$), at $0.83\times$ its energy per correct solution ($[0.69,\,1.01]$). Neither difference is statistically clear, so I do not claim the small model is better. The design point is still useful: a smaller model that retries is a serious alternative to a larger model that answers once, and the choice should be measured rather than assumed.
+
+\textbf{What no policy can fix.} Some first answers passed every visible check but failed the hidden tests: 5 of the 1.5B model's 140 and 6 of the 7B model's 140 seed-11 runs. Every policy accepts these at once, so their errors are invisible to the loop. Better verifiers, not more attempts, are the remedy.
 
 % =====================================================================
-\section{At repository scale: SWE-bench}
+\section{From a laptop to production and repository scale}\label{sec:production}
+\subsection{A production model on the same problems}
+Production models differ from local ones in size, hardware and in how they generate: many now produce hidden ``thinking'' tokens before the visible answer. To see what this means for the same question, I ran the identical harness against Google's Gemini 3 Flash (\texttt{gemini-3-flash-preview}) through the Gemini API. The free tier allowed only 11 of the 140 problems in one day, so these results are \emph{preliminary}.
+
+On those 11 problems, Gemini's first attempt was correct on 10, against 9 for the 7B model and 8 for the 1.5B model. The sample is far too small to rank the models. The token counts are more informative. Gemini's visible answers were similar in length to the local models' (median 207 output tokens, against 144--147), but before answering it generated hidden reasoning tokens: a median of 1{,}224 and a mean of about 4{,}000 per first request. In 6 of the 11 first requests the reasoning stopped at about 7{,}860 tokens, apparently at the limit implied by my 8{,}192-token output cap, so these counts are lower bounds. By the mean, the production model generated about 29 times as many tokens per answer as the local models; by the median, about 10 times. The one failed problem (HumanEval/141) also shows the cost of retrying such a model: six of its seven continuation requests reached the token cap, and the only visible pass, from full history, still failed the hidden tests.
+
+\textbf{Energy.} I cannot measure the energy of a hosted model. The best public reference is Google's own measurement of its Gemini Apps service: the median text prompt used 0.24\,Wh with a comprehensive boundary that includes host machines, idle capacity and data-centre overhead, and 0.10\,Wh when counting only active AI accelerators~\cite{google2025gemini}. The accelerator-only figure, about 360\,J, is the closest match to my GPU-board boundary. My laptop's median first request used 152\,J (7B) and 69\,J (1.5B). These numbers are the same order of magnitude, but they are not a like-for-like comparison: Google's figure is a median over a different mix of prompts and models, and a request with thousands of reasoning tokens may sit well above the median.
+
+\begin{keybox}{What changes in production}
+\textbf{Retries are cheap to buy and expensive in total.} An API user pays per token, not per joule, and never sees the energy. A model that thinks for thousands of tokens makes every extra attempt costly, so the stopping rule matters at least as much as on a laptop.
+
+\textbf{Accuracy headroom is smaller.} A strong model fails less often, so fewer runs reach a retry at all, and the expected value of an extra attempt falls with the failure rate.
+
+\textbf{Scale multiplies small savings.} A stopping rule that saves a quarter of the energy on failed runs is negligible for one user and material for a service answering millions of requests a day.
+\end{keybox}
+
+\subsection{At repository scale: SWE-bench}
 HumanEval asks for one function. SWE-bench asks an agent to resolve a real GitHub issue in a full repository: find the right file, read tests, edit, and check that nothing else broke. A file read can be essential to a later fix without changing any test result, so ``tests passed so far'' is a weaker progress signal at this scale.
 
 I compared two public SWE-bench Verified submissions on the same 500 tasks~\cite{swebench_exp}. Their metadata list them as mini-SWE-agent v2.0.0 runs with GPT-5.2 Codex (19 February 2026) and Gemini 3 Pro (26 February 2026). The per-task evaluator records I used give 364 and 353 successes; the summary metadata give 364 and 348. Because the second pair disagrees, I treat the comparison as one between archived submissions.
@@ -371,35 +423,7 @@ First failed & 33 & 103\\\bottomrule
 
 The totals differ by only 11, but the snapshots disagree on 77 tasks (Table~\ref{tab:swe}). An oracle that always picked the right submission would solve $320+44+33=397$. This is hindsight: a real selector must decide from evidence available before grading, and pay for the second run. A paired task bootstrap puts the difference in success rates ($-2.2$ points) between about $-5.6$ and $+1.2$ points, so 500 tasks cannot separate the two overall rates.
 
-Cost differs more clearly than accuracy. Among 48 traces I sampled, the median number of model calls was 37 and 53; the submissions' metadata report means of 28.1 and 51.3 calls per task, so my sample may over-represent long runs in the first snapshot. Energy cannot be estimated from public data at all: it would require power measurements on the serving hardware. The reconstructed patch also matched the submitted patch in only 3 of 48 sampled cases for the first snapshot (all 48 for the second), a reminder that traces must be checked against the delivered artifact.
-
-% =====================================================================
-\section{A stopping rule to test}
-My pilot suggests that repeated failures on the same test are a signal to stop. I propose to stop on lack of \emph{visible progress}. Let $v_t$ be the number of visible checks passed by candidate $t$, and $b_t=\max_{s\le t}v_s$ the best so far. A counter $c_t$ resets to 0 when $v_t>b_{t-1}$ and increases by one otherwise. With patience $K$, cap $T$ and optional energy budget $B$:
-\begin{align*}
-&\text{submit if } v_t=v_{\max}\ (\text{all visible checks pass});\\
-&\text{stop if } c_t\ge K,\ \ t=T,\ \text{or}\ \textstyle\sum_{s\le t}E_s\ge B,
-\end{align*}
-and on a non-accepting stop, return the \emph{earliest} candidate that achieved $b_t$.
-
-\begin{example}{Worked example (hypothetical runs, $K=1$, $T=4$, five visible checks)}
-\small
-\begin{tabularx}{\linewidth}{@{}lYY@{}}
-\toprule
-Attempt & Run A & Run B\\\midrule
-1 & 2 pass; best $=2$ & 2 pass; best $=2$\\
-2 & 4 pass; best $=4$, $c=0$ & 2 pass; $c=1\ge K$: stop\\
-3 & 5 pass: submit & return attempt 1\\\bottomrule
-\end{tabularx}
-\smallskip
-Run B might have succeeded on attempt 3; that unobserved outcome is exactly what the test below must measure. My runner recorded only the first failing assertion, so applying the rule requires logging every visible check and counting the cost of running them.
-\end{example}
-
-\textbf{How to test it fairly.} On a fresh problem set, branch every policy from the \emph{same} failed first program: fixed caps of 1, 2 and 4 attempts, a fresh retry, and progress-based repair. Charge the shared first request to every policy. Fix $K$ and an acceptable accuracy loss $\delta$ on development problems before looking at test results. Report $\hat p_S-\hat p_F$, the ratio $J_S/J_F$, and the share of rescues that stopping gives up,
-\begin{equation}
-\hat L=\frac1N\textstyle\sum_i \mathbf 1\{y_{i,S}=0,\ y_{i,F}=1\}.
-\end{equation}
-Adopt the rule only if the lower confidence bound of $\hat p_S-\hat p_F$ exceeds $-\delta$. This needs a much larger sample than my pilot: with 72 runs per policy, the standard error of a difference between two success rates near 86\% is roughly 6 points (unpaired), far wider than a 2-point $\delta$. A complementary signal worth comparing against is a prediction of failure from the model's own token probabilities.
+Cost differs more clearly than accuracy: the submissions' metadata report means of 28.1 and 51.3 model calls per task. Energy cannot be estimated from public data at all. At this scale, the lesson of my experiments still applies but is harder to act on: a stopping rule needs a progress signal, and ``tests passed so far'' is a weak one when most steps are reading and searching.
 
 % =====================================================================
 \section{Policy: telling users why the agent stopped}
@@ -420,29 +444,29 @@ Hidden-test result & passed (evaluation only; unknown at deployment)\\\bottomrul
 \end{tabularx}
 \end{table}
 
-A run that stops because its budget ran out should instead list which checks still fail. The two reasons call for different levels of human review. For a batch, I would add the model and hardware, total jobs, successful submissions and total measured energy.
+A run that stops because its budget ran out should instead list which checks still fail. The two reasons call for different levels of human review. For a batch, I would add the model and hardware, total jobs, successful submissions and total measured energy. For a hosted model, whose energy the user cannot observe, the record should instead give token counts, \emph{including hidden reasoning tokens}: Section~\ref{sec:production} showed that these can outnumber the visible answer many times over.
 
 % =====================================================================
 \section{Limitations}
 \begin{itemize}
-\item \textbf{Small repair sample.} Only 17 runs entered repair; one problem carries most of the gain.
-\item \textbf{Separate first answers.} Policies did not branch from the same failure, so repair and first-answer variation are mixed.
-\item \textbf{One model, one machine.} A 7B quantized model on one laptop GPU; larger models and data-centre hardware may behave differently.
-\item \textbf{Partial energy boundary.} GPU board only; uncalibrated sensor; two reload events retained.
-\item \textbf{Short tasks.} Single-function problems with prompts under 1{,}500 tokens.
+\item \textbf{One task family.} Single-function Python problems with prompts under about 2{,}000 tokens; repository-scale agents were studied only through archived public submissions, without energy.
+\item \textbf{Two small local models.} Both from one family, 4-bit quantized, on one laptop GPU; the size comparison rests on one seed per model.
+\item \textbf{Partial energy boundary.} GPU board power only, from an uncalibrated sensor; CPU, memory, the rest of the laptop and manufacturing are excluded. While the Gemini run tested its programs on the CPU, the 7B run shared the machine; this should barely affect GPU board power.
+\item \textbf{Production model.} Only 11 problems on a free tier, with an output cap that limited the model's reasoning; its energy is a published median for a different workload, not a measurement.
+\item \textbf{Low temperature.} At temperature 0.2, retries are less diverse than at higher settings; the advantage of fresh retries may change with sampling settings.
 \end{itemize}
 
 \section{Conclusion}
-Measured at the level of energy per correct solution, extra repair attempts did not pay for themselves on this workload. A single attempt used the least GPU energy per success, repair added two rescues per policy, and the runs that hit the attempt cap consumed about two-fifths of the energy without ever succeeding. Whether to take another step depends on two things the foundations made precise: how informative the feedback is, and whether the extra success clears the break-even condition of Eq.~(5).
+Measured as energy per correct solution, every extra attempt cost more than it returned: one attempt was the most efficient policy in the pilot and for both model sizes in the follow-up. When accuracy matters more than energy, \emph{how} the extra attempt is spent matters more than whether it is spent. Feeding the failure back was mostly wasted, because the model resubmitted the same program, while a fresh attempt from the original prompt rescued up to a third of the failures. Whether to take another step therefore depends on the two quantities the foundations made precise: how informative the feedback is, and whether the extra success clears the break-even condition of Eq.~(5).
 
 \begin{keybox}{What this study answers, and what it does not}
-\textbf{Answers.} On 24 HumanEval problems with a 7B local model, one attempt gives the lowest GPU energy per correct solution; capped repair runs are the main waste.
+\textbf{Answers.} On HumanEval with local Qwen2.5-Coder models: one attempt gives the lowest GPU energy per correct solution. Short and full history perform the same, because the model mostly repeats its program after feedback. A fresh retry rescues far more failures than either repair style. A progress-based stop keeps nearly all repair rescues at a quarter to a third less energy than a four-attempt cap, but it is no better than a two-attempt cap and should not be used for retries. A 1.5B model with retries comes within a statistically unclear 4 points of a 7B model's single attempt at lower energy.
 
-\textbf{Does not answer.} Whether short or full history is better; whether a progress-based stop keeps the rescues; how results change for larger models, repository-scale tasks, or whole-system energy. My next experiment branches all policies from the same failed program and measures how many correct answers a progress-based stop gives up for the energy it saves.
+\textbf{Does not answer.} The energy of production models, which only their operators can measure; how these results transfer to repository-scale agents, where progress is harder to observe; and whole-system energy beyond the GPU board. The production run is preliminary and should be extended to all 140 problems.
 \end{keybox}
 
-\section{Code and data availability}
-All code, prompts, raw power traces, run logs, and the analysis and plotting scripts for this report are available at \repourl.
+\section{Code and data availability}\label{sec:code}
+All code, prompts, raw power traces, run logs, hidden-test scores, and the analysis and plotting scripts for both case studies and the production run are available at \repourl. The follow-up data are in \texttt{data/followup/} and the scripts in \texttt{experiment2/}; every number in Sections~\ref{sec:followup} and \ref{sec:production} can be regenerated from them.
 
 \bibliographystyle{unsrt}
 \bibliography{refs}
