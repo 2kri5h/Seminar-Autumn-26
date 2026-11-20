@@ -1,0 +1,13 @@
+report/*.aux
+report/*.log
+report/*.out
+report/*.bbl
+report/*.blg
+report/*.fls
+report/*.fdb_latexmk
+report/*.xdv
+report/*.toc
+report/*.lof
+report/*.lot
+__pycache__/
+*.pyc

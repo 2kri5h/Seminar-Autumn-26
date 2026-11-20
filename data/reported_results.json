@@ -1,0 +1,29 @@
+{
+  "_note": "Every number below is copied from the seminar report (Tables 3-5, Figs. 2-3, Sections 4-5). It is the reported record, not raw data. The recompute script checks that these numbers are mutually consistent.",
+  "workload": {"problems": 24, "seeds": [11, 29, 47], "policies": 3, "runs_per_policy": 72, "initial_requests": 216, "total_requests": 259},
+  "policies": {
+    "one_attempt":   {"correct": 60, "mean_J_per_run": 107.09, "J_per_correct_reported": 128.51, "attempts": {"1": 72, "2": 0, "3": 0, "4": 0}},
+    "full_history":  {"correct": 62, "mean_J_per_run": 163.00, "J_per_correct_reported": 189.29, "attempts": {"1": 63, "2": 2, "3": 0, "4": 7},
+                      "cap_share_of_runs_pct": 9.7, "cap_share_of_energy_pct": 43.6, "correct_at_first_attempt": 60},
+    "short_history": {"correct": 63, "mean_J_per_run": 154.36, "J_per_correct_reported": 176.41, "attempts": {"1": 64, "2": 2, "3": 0, "4": 6},
+                      "cap_share_of_runs_pct": 8.3, "cap_share_of_energy_pct": 38.0, "correct_at_first_attempt": 61}
+  },
+  "problem_ids": [0, 8, 14, 31, 41, 42, 49, 66, 72, 79, 83, 86, 87, 97, 103, 108, 110, 111, 113, 139, 142, 151, 152, 160],
+  "correct_per_problem_out_of_3": {
+    "one_attempt":   [3,3,3,3,1,3,3,3,3,3,0,2,3,0,3,3,3,3,3,3,3,3,3,0],
+    "full_history":  [3,3,3,3,3,3,3,3,3,3,0,2,3,0,3,3,3,3,3,3,3,3,3,0],
+    "short_history": [3,3,3,3,3,3,3,3,3,3,1,2,3,0,3,3,3,3,2,3,3,3,3,1]
+  },
+  "bootstrap_reported": {
+    "resamples": 10000,
+    "ratio_full_over_one": 1.47, "ratio_short_over_one": 1.37,
+    "ratio_short_over_full": 0.932, "ci95_short_over_full": [0.815, 1.084],
+    "_note": "CIs for full/one and short/one are shown only graphically in the report (both above 1); numeric values need runs.csv."
+  },
+  "idle_sensitivity_J_per_success": {"one_attempt": 74.93, "full_history": 112.41, "short_history": 108.18},
+  "collision_run": {"problem": "HumanEval/41", "seed": 11, "policy": "short_history", "first_request_J": 31.52, "repair_request_J": 27.64, "power_window_s": 2.38, "model_runtime_s": 0.30},
+  "first_answer_identical_full_vs_short": {"identical": 66, "of": 72},
+  "swebench_verified_two_snapshots": {"both_solved": 320, "first_only": 44, "second_only": 33, "neither": 103, "tasks": 500,
+                                      "reported_paired_bootstrap_ci_pp": [-5.6, 1.2]},
+  "emissions": {"grid_factor_kg_CO2_per_kWh": 0.675, "source": "CEA CO2 Baseline Database v22.0, weighted average, FY 2025-26 (1189.04 Mt / 1761.28 BU)"}
+}
