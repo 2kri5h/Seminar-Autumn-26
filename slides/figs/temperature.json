@@ -1,0 +1,46 @@
+{
+ "1.5b": {
+  "T0.2": {
+   "units": 42,
+   "attempts": 122,
+   "unchanged": 107,
+   "unchanged_pct": 87.70491803278688,
+   "visible_rescues": 2,
+   "hidden_rescues": null,
+   "tokens_per_attempt": 170.04918032786884,
+   "seconds_per_attempt": 3.1071064179060888
+  },
+  "Thigh": {
+   "units": 42,
+   "attempts": 123,
+   "unchanged": 105,
+   "unchanged_pct": 85.36585365853658,
+   "visible_rescues": 2,
+   "hidden_rescues": null,
+   "tokens_per_attempt": 171.26829268292684,
+   "seconds_per_attempt": 2.8869506479278813
+  }
+ },
+ "7b": {
+  "T0.2": {
+   "units": 23,
+   "attempts": 67,
+   "unchanged": 52,
+   "unchanged_pct": 77.61194029850746,
+   "visible_rescues": 1,
+   "hidden_rescues": null,
+   "tokens_per_attempt": 181.61194029850745,
+   "seconds_per_attempt": 5.775550372564971
+  },
+  "Thigh": {
+   "units": 23,
+   "attempts": 65,
+   "unchanged": 47,
+   "unchanged_pct": 72.3076923076923,
+   "visible_rescues": 3,
+   "hidden_rescues": null,
+   "tokens_per_attempt": 181.47692307692307,
+   "seconds_per_attempt": 5.165778020712046
+  }
+ }
+}

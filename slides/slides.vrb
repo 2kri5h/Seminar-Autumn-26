@@ -1,0 +1,26 @@
+\frametitle{A Running Example: The Collision Problem}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\small $n$ cars drive east, $n$ drive west; every eastbound car passes every westbound car once. \textbf{How many collisions?}
+\vspace{0.6em}
+
+\uncover<2->{\textbf{Model's first answer:}
+\begin{semiverbatim}\footnotesize
+def car\_race\_collision(n):
+    return {\color{accent}n}
+\end{semiverbatim}}
+\uncover<3->{Visible test $n=1$: \textcolor{teal}{passes} (since $1 = 1^2$)\\}
+\uncover<4->{Visible test $n=2$: \textcolor{accent}{fails}, expected 4}
+\end{column}
+\begin{column}{0.48\textwidth}
+\uncover<5->{\textbf{After the failure message:}
+\begin{semiverbatim}\footnotesize
+def car\_race\_collision(n):
+    return {\color{teal}n * n}
+\end{semiverbatim}}
+\uncover<6->{%
+\begin{keybox}{But notice}
+\small \texttt{return 4} also passes the $n=2$ test. Visible tests are an \textbf{incomplete verifier}, so I score every answer on EvalPlus's much larger \textbf{hidden} tests \src{[4]}.
+\end{keybox}}
+\end{column}
+\end{columns}
